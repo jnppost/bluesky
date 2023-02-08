@@ -1,10 +1,12 @@
 # Automatically generated directories and files
 output
-plugins
 cache
 scenario/ic.scn
 bluesky/resources/grib
 bluesky/resources/netcdf
+
+#LVNL
+plugins/LVNL_data
 
 # Potentially locally-copied BADA installation
 bluesky/resources/performance/BADA/*
