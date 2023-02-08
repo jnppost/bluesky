@@ -60,6 +60,10 @@ def defineArea(areaname, areatype, coordinates, top=1e9, bottom=-1e9):
         basic_shapes[areaname] = Poly(areaname, coordinates, top, bottom)
     elif areatype == 'LINE':
         basic_shapes[areaname] = Line(areaname, coordinates)
+    elif areatype == 'POINT':
+        basic_shapes[areaname] = Point(areaname, coordinates)
+    elif areatype == 'DOTTEDLINE' or areatype == 'DASHEDLINE':
+        basic_shapes[areaname] = Line(areaname, coordinates)
 
     # Pass the shape on to the screen object
     bs.scr.objappend(areatype, areaname, coordinates)
@@ -238,3 +242,12 @@ class Poly(Shape):
         points = np.vstack((lat,lon)).T
         inside = np.all((self.border.contains_points(points), self.bottom <= alt, alt <= self.top), axis=0)
         return inside
+
+
+class Point(Shape):
+    def __init__(self, name, coordinates):
+        super().__init__(name, coordinates)
+
+    def __str__(self):
+        return f'{self.name} is a POINT with ' \
+            f'location ({self.coordinates[0]}, {self.coordinates[1]}).'

@@ -167,6 +167,9 @@ class nodeData:
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node
         self.polys = dict()
+        self.dotted = dict()
+        self.dashed = dict()
+        self.points = dict()
         self.custacclr = dict()
         self.custgrclr = dict()
         self.custwplbl = ''
@@ -225,15 +228,43 @@ class nodeData:
         elif groupid:
             self.custgrclr[groupid] = tuple(color)
         else:
-            contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
-            color = tuple(color) + (255,)
-            colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
-            self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+            # Polys
+            if polyid in self.polys:
+                contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+            # Dashed lines
+            elif polyid in self.dashed:
+                contourbuf, fillbuf, colorbuf = self.dashed.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.dashed[polyid] = (contourbuf, fillbuf, colorbuf)
+            # Dotted lines
+            elif polyid in self.dotted:
+                contourbuf, fillbuf, colorbuf = self.dotted.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.dotted[polyid] = (contourbuf, fillbuf, colorbuf)
+            # Points
+            elif polyid in self.points:
+                contourbuf, fillbuf, colorbuf = self.points.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.points[polyid] = (contourbuf, fillbuf, colorbuf)
+            else:
+                contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
 
     def update_poly_data(self, name, shape='', coordinates=None, color=None):
         # We're either updating a polygon, or deleting it. In both cases
         # we remove the current one.
         self.polys.pop(name, None)
+        self.dotted.pop(name, None)
+        self.dashed.pop(name, None)
+        self.points.pop(name, None)
 
         # Break up polyline list of (lat,lon)s into separate line segments
         if coordinates is not None:
@@ -278,16 +309,28 @@ class nodeData:
                 newdata[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
                 newdata[1::2] = lonCircle
 
+            elif shape == 'DOTTEDLINE' or shape == 'DASHEDLINE':
+                newdata = np.array(coordinates, dtype=np.float32)
+
+            elif shape == 'POINT':
+                newdata = np.array(coordinates, dtype=np.float32)  # [lat, lon]
+
             # Create polygon contour buffer
             # Distinguish between an open and a closed contour.
             # If this is a closed contour, add the first vertex again at the end
             # and add a fill shape
-            if shape[-4:] == 'LINE':
+            if shape == 'DOTTEDLINE' or shape == 'DASHEDLINE':
+                contourbuf = np.array(newdata, dtype=np.float32)
+                fillbuf = np.array([], dtype=np.float32)
+            elif shape[-4:] == 'LINE':
                 contourbuf = np.empty(2 * len(newdata) - 4, dtype=np.float32)
                 contourbuf[0::4]   = newdata[0:-2:2]  # lat
                 contourbuf[1::4]   = newdata[1:-2:2]  # lon
                 contourbuf[2::4] = newdata[2::2]  # lat
                 contourbuf[3::4] = newdata[3::2]  # lon
+                fillbuf = np.array([], dtype=np.float32)
+            elif shape == 'POINT':
+                contourbuf = np.array(newdata, dtype=np.float32)
                 fillbuf = np.array([], dtype=np.float32)
             else:
                 contourbuf = np.empty(2 * len(newdata), dtype=np.float32)
@@ -306,7 +349,14 @@ class nodeData:
 
             # Store new or updated polygon by name, and concatenated with the
             # other polys
-            self.polys[name] = (contourbuf, fillbuf, colorbuf)
+            if shape == 'POINT':
+                self.points[name] = (contourbuf, fillbuf, colorbuf)
+            elif shape == 'DOTTEDLINE':
+                self.dotted[name] = (contourbuf, fillbuf, colorbuf)
+            elif shape == 'DASHEDLINE':
+                self.dashed[name] = (contourbuf, fillbuf, colorbuf)
+            else:
+                self.polys[name] = (contourbuf, fillbuf, colorbuf)
 
     def defwpt(self, name, lat, lon):
         self.custwplbl += name[:10].ljust(10)

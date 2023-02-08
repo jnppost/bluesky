@@ -15,6 +15,15 @@ palette.set_default_colours(
 POLYPREV_SIZE = 100
 POLY_SIZE = 2000
 
+# Dotted lines pixel interval
+interval_dotted = 3
+
+# Dashed lines pixel interval
+interval_dashed = 5
+
+# Points size
+point_size = 4
+
 
 class Poly(glh.RenderObject, layer=-20):
     ''' Poly OpenGL object. '''
@@ -26,7 +35,14 @@ class Poly(glh.RenderObject, layer=-20):
 
         # Fixed polygons
         self.allpolys = glh.VertexArrayObject(glh.gl.GL_LINES)
+        self.alldotted = glh.VertexArrayObject(glh.gl.GL_LINES, shader_type='dashed')
+        self.alldashed = glh.VertexArrayObject(glh.gl.GL_LINES, shader_type='dashed')
         self.allpfill = glh.VertexArrayObject(glh.gl.GL_TRIANGLES)
+
+        # Points
+        self.allpoints = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN)
+        self.pointslat = glh.GLBuffer()
+        self.pointslon = glh.GLBuffer()
 
         self.prevmousepos = (0, 0)
 
@@ -37,11 +53,42 @@ class Poly(glh.RenderObject, layer=-20):
     def create(self):
         # self.polyprev.create(vertex=POLYPREV_SIZE * 8,
         #                      color=palette.previewpoly, usage=glh.gl.GL_DYNAMIC_DRAW)
+
+        # --------------- Preview poly ---------------
         self.polyprev.create(vertex=POLYPREV_SIZE * 8,
                              color=palette.previewpoly, usage=glh.GLBuffer.UsagePattern.DynamicDraw)
+
+        # --------------- Polys ---------------
         self.allpolys.create(vertex=POLY_SIZE * 16, color=POLY_SIZE * 8)
+
+        # --------------- Dotted lines ---------------
+        self.alldotted.create(vertex=POLY_SIZE * 16, color=POLY_SIZE * 8)
+
+        # --------------- Dashed lines ---------------
+        self.alldashed.create(vertex=POLY_SIZE * 16, color=POLY_SIZE * 8)
+
+        # --------------- Fills ---------------
         self.allpfill.create(vertex=POLY_SIZE * 24,
                              color=np.append(palette.polys, 50))
+
+        # --------------- Points ---------------
+        # OpenGL Buffers
+        self.pointslat.create(POLY_SIZE * 16)
+        self.pointslon.create(POLY_SIZE * 16)
+
+        # Define vertices
+        num_vert = 6
+        angles = np.linspace(0., 2 * np.pi, num_vert)
+        x = (point_size / 2) * np.sin(angles)
+        y = (point_size / 2) * np.cos(angles)
+        point_vert = np.empty((num_vert, 2), dtype=np.float32)
+        point_vert.T[0] = x
+        point_vert.T[1] = y
+
+        # Define VAO
+        self.allpoints.create(vertex=point_vert)
+        self.allpoints.set_attribs(lat=self.pointslat, lon=self.pointslon, color=POLY_SIZE * 8,
+                                   instance_divisor=1)
 
     def draw(self):
         actdata = bs.net.get_nodedata()
@@ -57,8 +104,28 @@ class Poly(glh.RenderObject, layer=-20):
 
         # --- DRAW CUSTOM SHAPES (WHEN AVAILABLE) -----------------------------
         if actdata.show_poly > 0:
+            # Polys
             self.allpolys.draw()
+
+            # Dashed and Dotted
+            dashed_shader = glh.ShaderSet.get_shader('dashed')
+            dashed_shader.bind()
+
+            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(interval_dotted))
+            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(interval_dotted))
+            self.alldotted.draw()
+
+            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(interval_dashed))
+            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(interval_dashed))
+            self.alldashed.draw()
+
+            # Points (set vertex is screen size)
+            self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_SCREEN)
+            self.allpoints.draw()
+
+            # Draw fills
             if actdata.show_poly > 1:
+                self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
                 self.allpfill.draw()
         
     def cmdline_stacked(self, cmd, args):
@@ -112,16 +179,53 @@ class Poly(glh.RenderObject, layer=-20):
         ''' Update buffers when a different node is selected, or when
             the data of the current node is updated. '''
         # Shape data change
-        if 'SHAPE' in changed_elems:
-            if nodedata.polys:
+        # Shape data change
+        if 'SHAPE' in changed_elems or 'MAP' in changed_elems:
+            # Make Current
+            if nodedata.polys or nodedata.points or nodedata.dotted or nodedata.dashed:
                 self.glsurface.makeCurrent()
+
+            # Polys
+            if nodedata.polys:
                 contours, fills, colors = zip(*nodedata.polys.values())
                 # Create contour buffer with color
                 self.allpolys.update(vertex=np.concatenate(contours),
                                      color=np.concatenate(colors))
-
                 # Create fill buffer
                 self.allpfill.update(vertex=np.concatenate(fills))
             else:
                 self.allpolys.set_vertex_count(0)
                 self.allpfill.set_vertex_count(0)
+
+            # Points
+            if nodedata.points:
+                # Retrieve data
+                contours, fills, colors = zip(*nodedata.points.values())
+                contours = np.concatenate(contours)
+                # Update buffers
+                self.pointslat.update(np.array(contours[::2], dtype=np.float32))
+                self.pointslon.update(np.array(contours[1::2], dtype=np.float32))
+                self.allpoints.update(color=np.concatenate(colors))
+
+            # Dotted lines
+            if nodedata.dotted:
+                # Retrieve data
+                contours, fills, colors = zip(*nodedata.dotted.values())
+                contours = np.concatenate(contours)
+                # Update object
+                self.alldotted.update(vertex=np.array(contours, dtype=np.float32),
+                                      color=np.concatenate(colors))
+            else:
+                self.alldotted.set_vertex_count(0)
+
+            # Dashed lines
+            if nodedata.dashed:
+                # Retrieve data
+                contours, fills, colors = zip(*nodedata.dashed.values())
+                contours = np.concatenate(contours)
+
+                # Update object
+                self.alldashed.update(vertex=np.array(contours, dtype=np.float32),
+                                      color=np.concatenate(colors))
+            else:
+                self.alldashed.set_vertex_count(0)

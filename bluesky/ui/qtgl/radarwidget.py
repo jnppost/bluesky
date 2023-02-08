@@ -43,6 +43,7 @@ class RadarShaders(glh.ShaderSet):
     def create(self):
         super().create()
         shaderpath = (bs.resource(bs.settings.gfx_path) / 'shaders').as_posix()
+        # shaderpath = 'C:/Users/LVNL_ILAB3/anaconda3/envs/ilabs311/Lib/site-packages/bluesky/resources/graphics/shaders'
         self.set_shader_path(shaderpath)
         # Load all shaders for this shader set
         self.load_shader('normal', 'radarwidget-normal.vert',
@@ -53,6 +54,8 @@ class RadarShaders(glh.ShaderSet):
                          'radarwidget-tiled.frag')
         self.load_shader('text', 'radarwidget-text.vert',
                          'radarwidget-text.frag')
+        self.load_shader('dashed', 'radarwidget-dashed.vert',
+                         'radarwidget-dashed.frag')
         self.load_shader('ssd', 'ssd.vert', 'ssd.frag', 'ssd.geom')
 
     def set_wrap(self, wraplon, wrapdir):

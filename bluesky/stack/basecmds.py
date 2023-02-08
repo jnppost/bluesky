@@ -172,6 +172,18 @@ def initbasecmds():
             bs.sim.setutc,
             "Set simulation date",
         ],
+        "DASHEDLINE": [
+            "DASHEDLINE name, lat, lon, lat, lon",
+            "txt,latlon,latlon",
+            lambda name, *coords: areafilter.defineArea(name, "DASHEDLINE", coords),
+            "Draw a dashed line"
+        ],
+        "DOTTEDLINE": [
+            "DOTTEDLINE name, lat, lon, lat, lon",
+            "txt,latlon,latlon",
+            lambda name, *coords: areafilter.defineArea(name, "DOTTEDLINE", coords),
+            "Draw a dotted line"
+        ],
         "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt]",
@@ -353,6 +365,12 @@ def initbasecmds():
             "acid/wpt",
             bs.traf.poscommand,
             "Get info on aircraft, airport or waypoint",
+        ],
+        "POINT": [
+            "POINT name, lat, lon",
+            "txt,latlon",
+            lambda name, *coords: areafilter.defineArea(name, "POINT", coords),
+            "Draw a point"
         ],
         "QUIT": ["QUIT", "", bs.sim.stop, "Quit program/Stop simulation"],
         "REALTIME": [
