@@ -7,15 +7,22 @@ import numpy as np
 
 from bluesky.ui import palette
 from bluesky.ui.polytools import PolygonSet
+from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
 from bluesky.network.client import Client
 from bluesky.core import Signal
 from bluesky.tools.aero import ft
 
+from bluesky import settings
+settings.set_variable_defaults(
+    interval_dotted=3,
+    interval_dashed=10,
+    point_size=3
+)
+
 # Globals
 UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT', 'ROUTEDATA']
 ACTNODE_TOPICS = [b'ACDATA', b'PLOT*', b'ROUTEDATA*']
-
 
 class GuiClient(Client):
     def __init__(self):
@@ -84,6 +91,10 @@ class GuiClient(Client):
             data_changed.append('SHAPE')
         elif name == b'COLOR':
             sender_data.update_color_data(**data)
+            if 'polyid' in data:
+                data_changed.append('SHAPE')
+        elif name == b'LTYPE':
+            sender_data.update_linetype_data(**data)
             if 'polyid' in data:
                 data_changed.append('SHAPE')
         elif name == b'DEFWPT':
@@ -229,6 +240,20 @@ class nodeData:
             color = tuple(color) + (255,)
             colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
             self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+
+    def update_linetype_data(self, ltype, polyid=None):
+        if ltype == "DASH":
+            dashed_shader = glh.ShaderSet.get_shader('dashed')
+            dashed_shader.bind()
+            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(4))
+            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(4))
+            self.polys[polyid].shader_type = 'dashed'
+        # elif type == "dot":
+        #     contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
+        #     color = tuple(color) + (255,)
+        #     colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+        #     self.dotted[polyid] = (contourbuf, fillbuf, colorbuf)
+
 
     def update_poly_data(self, name, shape='', coordinates=None, color=None):
         # We're either updating a polygon, or deleting it. In both cases

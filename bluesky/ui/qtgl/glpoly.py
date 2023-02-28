@@ -5,7 +5,6 @@ from bluesky.ui import palette
 from bluesky.ui.qtgl import console
 from bluesky.ui.qtgl import glhelpers as glh
 
-
 palette.set_default_colours(
     polys=(0, 0, 255),
     previewpoly=(0, 204, 255)

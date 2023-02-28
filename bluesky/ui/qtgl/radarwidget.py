@@ -52,7 +52,9 @@ class RadarShaders(glh.ShaderSet):
         self.load_shader('tiled', 'radarwidget-normal.vert',
                          'radarwidget-tiled.frag')
         self.load_shader('text', 'radarwidget-text.vert',
-                         'radarwidget-text.frag')
+                         'radarwidget-text.frag'),
+        self.load_shader('dashed', 'radarwidget-dashed.vert',
+                         'radarwidget-dashed.frag'),
         self.load_shader('ssd', 'ssd.vert', 'ssd.frag', 'ssd.geom')
 
     def set_wrap(self, wraplon, wrapdir):

@@ -42,6 +42,7 @@ from bluesky.stack import command
 from bluesky.ui.qtgl.dds import DDSTexture
 
 
+
 # Register settings defaults
 bs.settings.set_variable_defaults(gfx_path='graphics')
 

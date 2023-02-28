@@ -130,6 +130,21 @@ class ScreenIO:
         bs.net.send_event(b'COLOR', data, target=[b'*'])
         return True
 
+    def linetype(self, name, ltype):
+        ''' Set custom dashed/dotted shader for polys '''
+        self.echo(ltype)
+        if ltype not in ["SOLID", "DASH", "DOT"]:
+            return False, 'Linetype not recognised'
+        else:
+            data = dict(ltype=ltype)
+            if areafilter.hasArea(name):
+                data['polyid'] = name
+                areafilter.basic_shapes[name].raw['ltype'] = ltype
+            else:
+                return False, 'No object found with name ' + name
+            bs.net.send_event(b'LTYPE', data, target=[b'*'])
+            return True
+
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
         lat, lon = 0, 0

@@ -274,6 +274,12 @@ def initbasecmds():
             lambda name, *coords: areafilter.defineArea(name, "LINE", coords),
             "Draw a line on the radar screen",
         ],
+        "LINETYPE": [
+            "LINETYPE name, type (named solid, dash or dot)",
+            "txt,txt",
+            bs.scr.linetype,
+            "Sets linetype for a shape",
+        ],
         "LSVAR": [
             "LSVAR path.to.variable",
             "[word]",
