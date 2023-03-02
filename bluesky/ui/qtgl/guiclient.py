@@ -95,15 +95,13 @@ class GuiClient(Client):
                 data_changed.append('SHAPE')
         elif name == b'LTYPE':
             sender_data.update_linetype_data(**data)
-            if 'polyid' in data:
-                data_changed.append('SHAPE')
+            data_changed.append('SHAPE')
         elif name == b'DEFWPT':
             sender_data.defwpt(**data)
             data_changed.append('CUSTWPT')
         elif name == b'DISPLAYFLAG':
             sender_data.setflag(**data)
         elif name == b'ECHO':
-            
             data_changed.append('ECHOTEXT')
         elif name == b'PANZOOM':
             sender_data.panzoom(**data)
@@ -242,18 +240,26 @@ class nodeData:
             self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
 
     def update_linetype_data(self, ltype, polyid=None):
+        dashed_shader = glh.ShaderSet.get_shader('normal')
+        dashed_shader.bind()
         if ltype == "DASH":
-            dashed_shader = glh.ShaderSet.get_shader('dashed')
-            dashed_shader.bind()
+            contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
             glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(4))
             glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(4))
-            self.polys[polyid].shader_type = 'dashed'
-        # elif type == "dot":
-        #     contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
-        #     color = tuple(color) + (255,)
-        #     colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
-        #     self.dotted[polyid] = (contourbuf, fillbuf, colorbuf)
-
+            self.polys.pop(polyid, None)
+            self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+        elif ltype == "DOT":
+            contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
+            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(2))
+            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(2))
+            self.polys.pop(polyid, None)
+            self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+        elif ltype == "SOLID":
+            contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
+            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(0))
+            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(0))
+            self.polys.pop(polyid, None)
+            self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
 
     def update_poly_data(self, name, shape='', coordinates=None, color=None):
         # We're either updating a polygon, or deleting it. In both cases

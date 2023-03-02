@@ -45,8 +45,10 @@ class RadarShaders(glh.ShaderSet):
         shaderpath = (bs.resource(bs.settings.gfx_path) / 'shaders').as_posix()
         self.set_shader_path(shaderpath)
         # Load all shaders for this shader set
-        self.load_shader('normal', 'radarwidget-normal.vert',
-                         'radarwidget-color.frag')
+        # self.load_shader('normal', 'radarwidget-normal.vert',
+        #                  'radarwidget-color.frag')
+        self.load_shader('normal', 'radarwidget-dashedmerge.vert',
+                         'radarwidget-dashedmerge.frag'),
         self.load_shader('textured', 'radarwidget-normal.vert',
                          'radarwidget-texture.frag')
         self.load_shader('tiled', 'radarwidget-normal.vert',
