@@ -328,6 +328,12 @@ def initbasecmds():
             bs.scr.pan,
             "Pan screen (move view) to a waypoint, direction or aircraft",
         ],
+        "POINT": [
+            "POINT name, lat, lon",
+            "txt,latlon",
+            lambda name, *coords: areafilter.defineArea(name, "POINT", coords),
+            "Draw a point"
+        ],
         "PLOT": [
             "PLOT [x], y [,dt,colour,figure]",
             "[word,word,float,txt,int]",

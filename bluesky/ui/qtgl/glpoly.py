@@ -29,6 +29,10 @@ class Poly(glh.RenderObject, layer=-20):
         self.alldotted = glh.VertexArrayObject(glh.gl.GL_LINES)
         self.alldashed = glh.VertexArrayObject(glh.gl.GL_LINES)
         self.allpfill = glh.VertexArrayObject(glh.gl.GL_TRIANGLES)
+        # Points
+        self.allpoints = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN)
+        self.pointslat = glh.GLBuffer()
+        self.pointslon = glh.GLBuffer()
 
         self.prevmousepos = (0, 0)
 
@@ -57,6 +61,26 @@ class Poly(glh.RenderObject, layer=-20):
         self.allpfill.create(vertex=POLY_SIZE * 24,
                              color=np.append(palette.polys, 50))
 
+        # --------------- Points ---------------
+        # OpenGL Buffers
+        self.pointslat.create(POLY_SIZE * 16)
+        self.pointslon.create(POLY_SIZE * 16)
+
+        # Define vertices
+        point_size = settings.point_size
+        num_vert = 6
+        angles = np.linspace(0., 2 * np.pi, num_vert)
+        x = (point_size / 2) * np.sin(angles)
+        y = (point_size / 2) * np.cos(angles)
+        point_vert = np.empty((num_vert, 2), dtype=np.float32)
+        point_vert.T[0] = x
+        point_vert.T[1] = y
+
+        # Define VAO
+        self.allpoints.create(vertex=point_vert)
+        self.allpoints.set_attribs(lat=self.pointslat, lon=self.pointslon, color=POLY_SIZE * 8,
+                                   instance_divisor=1)
+
     def draw(self):
         actdata = bs.net.get_nodedata()
         # Send the (possibly) updated global uniforms to the buffer
@@ -74,10 +98,6 @@ class Poly(glh.RenderObject, layer=-20):
             dashed_shader = glh.ShaderSet.get_shader('normal')
             dashed_shader.bind()
 
-            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(0))
-            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(0))
-            self.allpolys.draw()
-
             glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(settings.interval_dashed))
             glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(settings.interval_dashed))
             self.alldashed.draw()
@@ -86,11 +106,21 @@ class Poly(glh.RenderObject, layer=-20):
             glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(settings.interval_dotted))
             self.alldotted.draw()
 
+            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(0))
+            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(0))
+            self.allpolys.draw()
+
+            # Points (set vertex is screen size)
+            self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_SCREEN)
+            if len(actdata.points) != 0:
+                self.allpoints.draw(n_instances=len(actdata.points))
+
             if actdata.show_poly > 1:
+                self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
                 self.allpfill.draw()
         
     def cmdline_stacked(self, cmd, args):
-        if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE', 'POLYLINE']:
+        if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE', 'POLYLINE', 'POINT']:
             self.polyprev.set_vertex_count(0)
 
     # def previewpoly(self, shape_type, data_in=None):
@@ -156,15 +186,15 @@ class Poly(glh.RenderObject, layer=-20):
                 self.allpolys.set_vertex_count(0)
                 self.allpfill.set_vertex_count(0)
 
-            # # Points
-            # if nodedata.points:
-            #     # Retrieve data
-            #     contours, fills, colors = zip(*nodedata.points.values())
-            #     contours = np.concatenate(contours)
-            #     # Update buffers
-            #     self.pointslat.update(np.array(contours[::2], dtype=np.float32))
-            #     self.pointslon.update(np.array(contours[1::2], dtype=np.float32))
-            #     self.allpoints.update(color=np.concatenate(colors))
+            # Points
+            if nodedata.points:
+                # Retrieve data
+                contours, fills, colors = zip(*nodedata.points.values())
+                contours = np.concatenate(contours)
+                # Update buffers
+                self.pointslat.update(np.array(contours[::2], dtype=np.float32))
+                self.pointslon.update(np.array(contours[1::2], dtype=np.float32))
+                self.allpoints.update(color=np.concatenate(colors))
 
             # Dotted lines
             if nodedata.dotted:

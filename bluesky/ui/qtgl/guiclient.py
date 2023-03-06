@@ -267,7 +267,6 @@ class nodeData:
                 contourbuf, fillbuf, colorbuf = self.dotted.get(polyid)
                 self.dotted.pop(polyid, None)
             self.dashed[polyid] = (contourbuf, fillbuf, colorbuf)
-
         elif ltype == "DOT":
             if polyid in self.polys:
                 contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
@@ -276,7 +275,6 @@ class nodeData:
                 contourbuf, fillbuf, colorbuf = self.dashed.get(polyid)
                 self.dashed.pop(polyid, None)
             self.dotted[polyid] = (contourbuf, fillbuf, colorbuf)
-
         elif ltype == "SOLID":
             if polyid in self.dashed:
                 contourbuf, fillbuf, colorbuf = self.dashed.get(polyid)
@@ -337,6 +335,9 @@ class nodeData:
                 newdata[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
                 newdata[1::2] = lonCircle
 
+            elif shape == 'POINT':
+                newdata = np.array(coordinates, dtype=np.float32)  # [lat, lon]
+
             # Create polygon contour buffer
             # Distinguish between an open and a closed contour.
             # If this is a closed contour, add the first vertex again at the end
@@ -347,6 +348,9 @@ class nodeData:
                 contourbuf[1::4]   = newdata[1:-2:2]  # lon
                 contourbuf[2::4] = newdata[2::2]  # lat
                 contourbuf[3::4] = newdata[3::2]  # lon
+                fillbuf = np.array([], dtype=np.float32)
+            elif shape == 'POINT':
+                contourbuf = np.array(newdata, dtype=np.float32)
                 fillbuf = np.array([], dtype=np.float32)
             else:
                 contourbuf = np.empty(2 * len(newdata), dtype=np.float32)
@@ -365,7 +369,20 @@ class nodeData:
 
             # Store new or updated polygon by name, and concatenated with the
             # other polys
-            self.polys[name] = (contourbuf, fillbuf, colorbuf)
+            if shape == 'POINT':
+                self.points[name] = (contourbuf, fillbuf, colorbuf)
+            else:
+                self.polys[name] = (contourbuf, fillbuf, colorbuf)
+
+        else:
+            if name in self.points:
+                del self.points[name]
+            elif name in self.dotted:
+                del self.dotted[name]
+            elif name in self.dashed:
+                del self.dashed[name]
+            elif name in self.polys:
+                del self.polys[name]
 
     def defwpt(self, name, lat, lon):
         self.custwplbl += name[:10].ljust(10)
