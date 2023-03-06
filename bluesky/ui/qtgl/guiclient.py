@@ -13,12 +13,6 @@ from bluesky.network.client import Client
 from bluesky.core import Signal
 from bluesky.tools.aero import ft
 
-from bluesky import settings
-settings.set_variable_defaults(
-    interval_dotted=3,
-    interval_dashed=10,
-    point_size=3
-)
 
 # Globals
 UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT', 'ROUTEDATA']
@@ -176,6 +170,9 @@ class nodeData:
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node
         self.polys = dict()
+        self.dotted = dict()
+        self.dashed = dict()
+        self.points = dict()
         self.custacclr = dict()
         self.custgrclr = dict()
         self.custwplbl = ''
@@ -234,37 +231,68 @@ class nodeData:
         elif groupid:
             self.custgrclr[groupid] = tuple(color)
         else:
-            contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
-            color = tuple(color) + (255,)
-            colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
-            self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+            # Polys
+            if polyid in self.polys:
+                contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+            # Dashed lines
+            elif polyid in self.dashed:
+                contourbuf, fillbuf, colorbuf = self.dashed.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.dashed[polyid] = (contourbuf, fillbuf, colorbuf)
+            # Dotted lines
+            elif polyid in self.dotted:
+                contourbuf, fillbuf, colorbuf = self.dotted.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.dotted[polyid] = (contourbuf, fillbuf, colorbuf)
+            # Points
+            elif polyid in self.points:
+                contourbuf, fillbuf, colorbuf = self.points.get(polyid)
+                color = tuple(color) + (255,)
+                colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
+                self.points[polyid] = (contourbuf, fillbuf, colorbuf)
 
     def update_linetype_data(self, ltype, polyid=None):
         dashed_shader = glh.ShaderSet.get_shader('normal')
         dashed_shader.bind()
         if ltype == "DASH":
-            contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
-            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(4))
-            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(4))
-            self.polys.pop(polyid, None)
-            self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+            if polyid in self.polys:
+                contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
+                self.polys.pop(polyid, None)
+            elif polyid in self.dotted:
+                contourbuf, fillbuf, colorbuf = self.dotted.get(polyid)
+                self.dotted.pop(polyid, None)
+            self.dashed[polyid] = (contourbuf, fillbuf, colorbuf)
+
         elif ltype == "DOT":
-            contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
-            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(2))
-            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(2))
-            self.polys.pop(polyid, None)
-            self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
+            if polyid in self.polys:
+                contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
+                self.polys.pop(polyid, None)
+            elif polyid in self.dashed:
+                contourbuf, fillbuf, colorbuf = self.dashed.get(polyid)
+                self.dashed.pop(polyid, None)
+            self.dotted[polyid] = (contourbuf, fillbuf, colorbuf)
+
         elif ltype == "SOLID":
-            contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
-            glh.gl.glUniform1f(dashed_shader.uniforms['dashSize'].loc, float(0))
-            glh.gl.glUniform1f(dashed_shader.uniforms['gapSize'].loc, float(0))
-            self.polys.pop(polyid, None)
+            if polyid in self.dashed:
+                contourbuf, fillbuf, colorbuf = self.dashed.get(polyid)
+                self.polys.pop(polyid, None)
+            elif polyid in self.dotted:
+                contourbuf, fillbuf, colorbuf = self.dotted.get(polyid)
+                self.dotted.pop(polyid, None)
             self.polys[polyid] = (contourbuf, fillbuf, colorbuf)
 
     def update_poly_data(self, name, shape='', coordinates=None, color=None):
         # We're either updating a polygon, or deleting it. In both cases
         # we remove the current one.
         self.polys.pop(name, None)
+        self.dotted.pop(name, None)
+        self.dashed.pop(name, None)
+        self.points.pop(name, None)
 
         # Break up polyline list of (lat,lon)s into separate line segments
         if coordinates is not None:

@@ -132,7 +132,6 @@ class ScreenIO:
 
     def linetype(self, name, ltype):
         ''' Set custom dashed/dotted shader for polys '''
-        self.echo(ltype)
         if ltype not in ["SOLID", "DASH", "DOT"]:
             return False, 'Linetype not recognised'
         else:
