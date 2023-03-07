@@ -19,7 +19,6 @@ class Map(glh.RenderObject, layer=-100):
         super().__init__(parent)
 
         self.map = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN)
-        self.maptrans = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN)
         self.coastlines = glh.VertexArrayObject(glh.gl.GL_LINES)
         self.coastindices = []
         self.vcount_coast = 0
@@ -43,17 +42,13 @@ class Map(glh.RenderObject, layer=-100):
         print('Maximum supported texture size: %d' % max_texture_size)
         for i in [16384, 8192, 4096]:
             fname = bs.resource(bs.settings.gfx_path) / f'world.{i}x{i//2}.dds'
-            fnametrans = bs.resource(bs.settings.gfx_path) / f'transparent.{i}x{i//2}.dds'
             if max_texture_size >= i and fname.exists():
                 print(f'Loading texture {fname}')
                 self.map.create(vertex=mapvertices,
                                 texcoords=texcoords, texture=fname)
-
-                self.maptrans.create(vertex=mapvertices,
-                                    texcoords=texcoords, texture=fnametrans)
                 break
 
-    def draw(self):
+    def draw(self, skipmap=False):
         # Send the (possibly) updated global uniforms to the buffer
         self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
 
@@ -61,11 +56,8 @@ class Map(glh.RenderObject, layer=-100):
         # Map and coastlines: don't wrap around in the shader
         self.shaderset.enable_wrap(False)
 
-        actdata = bs.net.get_nodedata()
-        if actdata.show_map == True:
+        if not skipmap:
             self.map.draw()
-        else:
-            self.maptrans.draw()
         shaderset = glh.ShaderSet.selected
         if shaderset.data.wrapdir == 0:
             # Normal case, no wrap around
