@@ -15,6 +15,9 @@ palette.set_default_colours(
 POLYPREV_SIZE = 100
 POLY_SIZE = 2000
 
+settings.set_variable_defaults(point_size=5,
+interval_dashed=10,
+interval_dotted=3)
 
 class Poly(glh.RenderObject, layer=-20):
     ''' Poly OpenGL object. '''
