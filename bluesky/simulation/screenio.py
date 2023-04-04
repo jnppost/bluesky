@@ -38,6 +38,7 @@ class ScreenIO:
         # Dicts of custom aircraft and group colors
         self.custacclr = dict()
         self.custgrclr = dict()
+        self.custbgclr = dict()
 
         # Timing bookkeeping counters
         self.prevtime    = 0.0
@@ -67,6 +68,7 @@ class ScreenIO:
         self.route_all = ''
         self.custacclr = dict()
         self.custgrclr = dict()
+        self.custbgclr = dict()
         self.samplecount = 0
         self.prevcount   = 0
         self.prevtime    = 0.0
@@ -129,6 +131,11 @@ class ScreenIO:
             return False, 'No object found with name ' + name
         bs.net.send_event(b'COLOR', data, target=[b'*'])
         return True
+
+    def bgcolour(self, r, g, b):
+        ''' Set custom color for background when map isnt shown '''
+        data = dict(color=(r, g, b))
+        bs.net.send_event(b'BGCOLOR', data, target=[b'*'])
 
     def linetype(self, name, ltype):
         ''' Set custom dashed/dotted shader for polys '''

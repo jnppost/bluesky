@@ -87,6 +87,9 @@ class GuiClient(Client):
             sender_data.update_color_data(**data)
             if 'polyid' in data:
                 data_changed.append('SHAPE')
+        elif name == b'BGCOLOR':
+            sender_data.set_background_color(data['color'])
+            data_changed.append('BGCOLOR')
         elif name == b'LTYPE':
             sender_data.update_linetype_data(**data)
             data_changed.append('SHAPE')
@@ -175,6 +178,7 @@ class nodeData:
         self.points = dict()
         self.custacclr = dict()
         self.custgrclr = dict()
+        self.custbgclr = dict()
         self.custwplbl = ''
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
@@ -255,6 +259,9 @@ class nodeData:
                 color = tuple(color) + (255,)
                 colorbuf = np.array(len(contourbuf) // 2 * color, dtype=np.uint8)
                 self.points[polyid] = (contourbuf, fillbuf, colorbuf)
+
+    def set_background_color(self, color):
+        self.custbgclr = tuple(color)
 
     def update_linetype_data(self, ltype, polyid=None):
         dashed_shader = glh.ShaderSet.get_shader('normal')

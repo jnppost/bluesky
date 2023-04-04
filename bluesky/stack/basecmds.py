@@ -92,7 +92,13 @@ def initbasecmds():
             bs.sim.batch,
             "Start a scenario file as batch simulation",
         ],
-        "BLUESKY": ["BLUESKY", "", singbluesky, "Sing"],
+        "BGCOLOUR": [
+            "BGCOLOUR colour (named colour or r,g,b)",
+            "colour",
+            bs.scr.bgcolour,
+            "Set a custom colour for the background",
+        ],
+            "BLUESKY": ["BLUESKY", "", singbluesky, "Sing"],
         "BENCHMARK": [
             "BENCHMARK [scenfile,time]",
             "[string,time]",
@@ -440,6 +446,7 @@ def initbasecmds():
         "AIRPORT": "POS",
         "AIRWAYS": "AIRWAY",
         "BANKLIM": "BANK",
+        "BGCOLOR": "BGCOLOUR",
         "CHDIR": "CD",
         "COL": "COLOUR",
         "COLOR": "COLOUR",

@@ -9,6 +9,7 @@ except ImportError:
 
 import bluesky as bs
 from bluesky.core import Signal
+from bluesky.ui import palette
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.radarclick import radarclick
 from bluesky.ui.qtgl import console
@@ -19,6 +20,8 @@ from .glpoly import Poly
 from .gltiledmap import TiledMap
 # Register settings defaults
 bs.settings.set_variable_defaults(gfx_path='graphics')
+# Register palette defaults
+palette.set_default_colours(radarwidget_background=(179, 179, 179))
 
 # Qt smaller than 5.6.2 needs a different approach to pinch gestures
 CORRECT_PINCH = False
@@ -136,6 +139,11 @@ class RadarWidget(glh.RenderWidget):
         # Update pan/zoom
         if 'PANZOOM' in changed_elems:
             self.panzoom(pan=nodedata.pan, zoom=nodedata.zoom, absolute=True)
+        if 'BGCOLOR' in changed_elems:
+            actdata = bs.net.get_nodedata()
+            self.makeCurrent()
+            glh.gl.glClearColor(actdata.custbgclr[0] / 255, actdata.custbgclr[1] / 255, actdata.custbgclr[2] / 255, 0)
+
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
@@ -146,7 +154,8 @@ class RadarWidget(glh.RenderWidget):
         self.shaderset.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
 
         # background color
-        glh.gl.glClearColor(0.7, 0.7, 0.7, 0)
+        rgb_background = palette.radarwidget_background
+        glh.gl.glClearColor(rgb_background[0] / 255, rgb_background[1] / 255, rgb_background[2] / 255, 0)
         glh.gl.glEnable(glh.gl.GL_BLEND)
         glh.gl.glBlendFunc(glh.gl.GL_SRC_ALPHA, glh.gl.GL_ONE_MINUS_SRC_ALPHA)
 

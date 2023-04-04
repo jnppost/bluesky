@@ -25,6 +25,7 @@ from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
 from bluesky.network import get_ownip
 from bluesky.ui import palette
+from bluesky import stack
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
@@ -384,7 +385,7 @@ class MainWindow(QMainWindow):
             if actdata.show_lbl < 0:
                 actdata.show_lbl = 2
         elif self.sender() == self.showmap:
-            actdata.show_map = not actdata.show_map
+            stack.stack('SHOWMAP')
         elif self.sender() == self.action_Save:
             bs.net.send_event(b'STACK', 'SAVEIC')
         elif hasattr(self.sender(), 'host_id'):
